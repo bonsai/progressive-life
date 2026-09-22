@@ -1,0 +1,53 @@
+name: STT to Episode
+
+on:
+  workflow_dispatch:
+    inputs:
+      audio_url:
+        description: "HTTP(S) URL of the recorded Voice artifact"
+        required: true
+        type: string
+      voice_id:
+        description: "Voice ID"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  stt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install STT runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install faster-whisper
+      - name: Download Voice
+        env:
+          AUDIO_URL: ${{ inputs.audio_url }}
+        run: |
+          curl --fail --location --retry 3 --output voice-input "$AUDIO_URL"
+          file voice-input
+      - name: STT and Episode extraction
+        env:
+          VOICE_ID: ${{ inputs.voice_id }}
+          WHISPER_MODEL: tiny
+          STT_LANGUAGE: ja
+        run: python scripts/stt_episode.py voice-input
+      - name: Commit Episode
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/episodes.jsonl
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: create episode from voice ${{ inputs.voice_id }}"
+          git push
