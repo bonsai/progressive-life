@@ -9,11 +9,26 @@
 | Data | JSONL | Episode / Event / Decision / Relation |
 | Decision | Jev | Structured decision |
 | View | HTML / CSS / JavaScript | Episode Field / Reader |
-| Hosting | GitHub Pages | Static View |
+| Hosting / Interface | Cloudflare Workers | Public View / API / Interface |
 
-## Optional
+## Current Public View
 
-D1 / R2 / Workers / Vercel / Surge は必要性が発生した時だけ追加する。
+https://progressive-life.vonsai-apps.workers.dev
+
+Cloudflare Workersを現在の公開View / Interfaceとする。
+GitHub Pagesは現在の主要な公開先ではない。
+
+## Optional Providers
+
+| Provider | Role |
+|---|---|
+| Cloudflare D1 | Current State |
+| Cloudflare R2 | Audio / Binary Artifact |
+| Vercel | Alternate API / Runtime |
+| Surge | Prototype View |
+| GitHub Pages | Legacy / Optional Static View |
+
+Providerは交換可能。CanonはGitHubに置き、View / API / Artifactの実装はProviderに依存しない。
 
 ## Data Flow
 
@@ -22,6 +37,10 @@ Voice → Episode → Event → Decision → Candidate Relation → Human Confir
 ## World Flow
 
 history → latest → now → action
+
+## Deploy Flow
+
+GitHub Canon → clone → Cloudflare CLI auth → validate → build → Workers deploy → Public View
 
 ## Principles
 
