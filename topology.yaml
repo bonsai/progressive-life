@@ -1,0 +1,100 @@
+# Progressive Life Topology
+# Structural dictionary: how entities and systems connect.
+
+topology:
+  layers:
+    - name: world
+      nodes: [episodes, actors, providers]
+    - name: history
+      nodes: [voices, events, decisions]
+    - name: now
+      nodes: [relations, current_state]
+    - name: action
+      nodes: [record, move, ask, confirm]
+    - name: view
+      nodes: [episode_field, audio_player]
+
+  flow:
+    canonical:
+      - voice
+      - episode
+      - event
+      - decision
+      - relation
+      - view
+
+    operational:
+      - actor
+      - action
+      - event
+      - decision
+      - action
+      - event
+
+  relationships:
+    - from: actor
+      to: voice
+      type: records
+    - from: voice
+      to: episode
+      type: derives
+    - from: actor
+      to: episode
+      type: moves
+    - from: episode
+      to: episode
+      type: relates
+    - from: episodes
+      to: decision
+      type: asks
+    - from: decision
+      to: relation
+      type: proposes
+    - from: actor
+      to: relation
+      type: confirms
+    - from: relation
+      to: view
+      type: projects
+    - from: event
+      to: history
+      type: accumulates
+    - from: history
+      to: now
+      type: derives
+    - from: now
+      to: view
+      type: renders
+
+  infrastructure:
+    canon:
+      provider: GitHub
+      role: history
+    compute:
+      provider: GitHub Actions
+      trigger: gh-aw
+    decision:
+      provider: Jev
+      role: structured_decision
+    database:
+      provider: Cloudflare D1
+      role: now
+    binary:
+      provider: Cloudflare R2
+      role: artifact
+    edge_api:
+      provider: Cloudflare Workers
+      role: interface
+    alternate_api:
+      provider: Vercel
+      role: interface
+    prototype:
+      provider: Surge
+      role: view
+
+  invariants:
+    - "Providers are replaceable through interfaces."
+    - "View is derived and can be regenerated."
+    - "Decision does not overwrite voice."
+    - "Event history is append-oriented."
+    - "Now is a projection of history, not a second history."
