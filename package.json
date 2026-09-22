@@ -1,1 +1,1 @@
-{"name":"progressive-life","private":true,"type":"module","scripts":{"validate":"node scripts/validate.mjs","build":"node scripts/build.mjs","test":"node --test"}}
+{"name":"progressive-life","private":true,"type":"module","scripts":{"validate":"node scripts/validate.mjs","build":"node scripts/build.mjs","deploy:cf":"bash scripts/cf-deploy.sh","setup:cf":"bash scripts/cf-setup.sh","test":"node --test"}}
