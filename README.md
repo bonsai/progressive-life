@@ -8,7 +8,7 @@ progressive-life は、人生を時系列に並べて記録するためのWebで
 
 ## Concept
 
-> どっから読んでもおもしろい。はじめと終わりがない編集。
+> 半生記を語る。語ったことをつなげる。つながるほど、自分の人生が見えてくる。
 
 Episode は固定された年表の一点ではなく、Episode Field に浮かぶ断片。
 読者も語り手も同じUIを使い、語り手にはマイクが追加される。
@@ -40,21 +40,26 @@ progressive-life = GitHub Canon + AW + Jev + View + replaceable Providers
 
 ### Provider strategy
 
-無料枠と分散を前提に、各Providerに役割を固定しない。
+GitHubをCanonとして、公開Viewと実行基盤を分離する。
 
 | Provider | Role |
 |---|---|
 | GitHub | Canon / History / Source |
 | GitHub Actions / gh aw | Operation / Automation |
-| GitHub Pages | Static View |
 | Jev | Structured Decision |
+| GitHub Pages | Legacy / Optional Static View |
+| Cloudflare Workers | API / Interface / Public View |
 | Cloudflare D1 | Current State |
 | Cloudflare R2 | Audio / Binary Artifact |
-| Cloudflare Workers | API / Interface |
 | Vercel | Alternate API / Runtime |
 | Surge | Prototype View |
 
-最初は **GitHub Pages + gh aw + Actions + JSONL + Jev** だけで成立させ、必要になった時点で D1 / R2 / Workers / Vercel / Surge を追加する。
+現在の公開View:
+
+**https://progressive-life.vonsai-apps.workers.dev**
+
+まず Workers を公開Viewとして使い、必要に応じてD1/R2を追加する。
+GitHub PagesはCanonではなく、必要な場合だけ使う。
 
 ## Data
 
@@ -116,9 +121,23 @@ Jev は文章を書くための中心ではなく、候補の選択・スコア�
 7. Providers are replaceable — Interfaceの内側は交換可能
 8. GitHub is Canon — まずGitに残す
 
+## Deploy
+
+Clone して、Cloudflare CLI認証を引き継いで公開する。
+
+```bash
+git clone https://github.com/bonsai/progressive-life.git
+cd progressive-life
+bash install.sh
+```
+
+`install.sh` は既存cloneならpullし、`scripts/cf-setup.sh` を実行する。
+Cloudflareの認証はローカルCLIで行う。
+
 ## Status
 
-設計段階。次の実装単位：Episode Field → Voice recording → MP3 artifact → JSONL event history → gh aw / Jev → Relation → GitHub Pages View → 必要に応じてD1 / R2 / Workers / Vercel。
+MVP実装。次の実装単位：
+Episode Field → Voice recording → MP3 artifact → JSONL event history → gh aw / Jev → Relation → Workers View → 必要に応じてD1 / R2。
 
 ## License
 
