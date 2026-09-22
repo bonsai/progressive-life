@@ -1,0 +1,74 @@
+# Progressive Life Ontology
+# Semantic dictionary: what exists and what it means.
+
+ontology:
+  world:
+    description: "A field of life fragments and their relations."
+    entities:
+      - episode
+      - voice
+      - event
+      - decision
+      - relation
+      - view
+      - actor
+      - interface
+      - provider
+      - artifact
+
+  episode:
+    type: fragment
+    description: "A non-chronological unit of lived experience."
+    properties: [id, title, voice_id, transcript, recorded_at, relations]
+    canonical_source: voice
+
+  voice:
+    type: artifact
+    description: "Original spoken material; canonical source of an episode."
+    properties: [id, uri, format, duration, recorded_at]
+
+  event:
+    type: history
+    description: "A recorded change or operation in the world."
+    properties: [id, subject, action, object, timestamp]
+
+  decision:
+    type: interpretation
+    description: "A structured judgment about candidate relations."
+    producer: Jev
+    properties: [id, question, candidates, result, confidence]
+
+  relation:
+    type: edge
+    description: "A semantic connection between episodes or other entities."
+    properties: [source, target, kind, strength, confidence]
+
+  view:
+    type: projection
+    description: "A readable projection of current state; never the canonical history."
+    source: [events, decisions, relations]
+
+  actor:
+    type: subject
+    description: "A human or agent that performs an operation."
+
+  interface:
+    type: boundary
+    description: "A contract through which worlds or systems interact."
+    protocol: OpenAPI
+
+  provider:
+    type: infrastructure
+    description: "A replaceable execution or storage environment."
+    examples: [GitHub, Cloudflare, Vercel, Surge]
+
+  artifact:
+    type: binary
+    description: "A stored media or generated file."
+    examples: [mp3, png, waveform]
+
+  principles:
+    canonicality: "Voice and event history are preserved; derived interpretations are additive."
+    non_chronological: "Episode order is spatial/relational, not a fixed timeline."
+    human_agency: "Humans record and confirm; AI proposes structured interpretations."
+    separation: "History, now, action, decision and view are distinct concepts."
