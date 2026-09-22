@@ -1,0 +1,5 @@
+import fs from "node:fs"; import path from "node:path";
+const files=[["data/episodes.jsonl","episode"],["data/events.jsonl","event"],["data/decisions.jsonl","decision"],["data/relations.jsonl","relation"]];
+let errors=0;
+for(const [file,type] of files){if(!fs.existsSync(file)) continue; const lines=fs.readFileSync(file,"utf8").split(/\r?\n/).filter(Boolean); lines.forEach((line,i)=>{try{const r=JSON.parse(line); for(const k of ["id","type","created_at","source"]) if(!r[k]) throw new Error(`missing ${k}`); if(r.type!==type) throw new Error(`type must be ${type}`); if(type==="event" && (!r.event?.subject || !r.event?.action)) throw new Error("event requires subject/action"); if(type==="relation" && !["candidate","confirmed","rejected"].includes(r.status)) throw new Error("invalid relation status");}catch(e){errors++; console.error(`${file}:${i+1}: ${e.message}`)}})}
+if(errors) process.exit(1); console.log("JSONL valid");
