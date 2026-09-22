@@ -23,7 +23,7 @@ echo "Cloudflare authentication is the only interactive step."
 echo "A browser will open. Complete Cloudflare login, then return here."
 npx wrangler login
 
-echo "[5/5] Deploying to Cloudflare Pages..."
-npx wrangler pages deploy public --project-name "$PROJECT_NAME"
+echo "[5/5] Deploying Cloudflare Worker: $PROJECT_NAME..."
+npx wrangler deploy
 
-echo "Cloudflare Pages deployment finished."
+echo "Cloudflare Workers deployment finished."
