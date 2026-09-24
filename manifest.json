@@ -1,0 +1,57 @@
+{
+  "name": "progressive-life — 声で残す半生記",
+  "short_name": "半生記",
+  "description": "マイクに向かって語るだけ。あなたの人生が、家族の宝物になります。個人情報はブラウザ内で完結。",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#faf9f6",
+  "theme_color": "#8b4513",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "ja",
+  "dir": "ltr",
+  "screenshots": [
+    {
+      "src": "/screenshot-record.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "録音画面"
+    },
+    {
+      "src": "/screenshot-episodes.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "エピソード一覧"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "録音を開始",
+      "short_name": "録音",
+      "description": "すぐに録音を開始します",
+      "url": "/app.html#record",
+      "icons": [{ "src": "/icon-record.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "エピソードを見る",
+      "short_name": "エピソード",
+      "description": "今までのエピソードを確認",
+      "url": "/app.html#episodes",
+      "icons": [{ "src": "/icon-episodes.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "PDFを作成",
+      "short_name": "PDF",
+      "description": "半生記のPDFを作成してメールで送る",
+      "url": "/app.html#pdf",
+      "icons": [{ "src": "/icon-pdf.png", "sizes": "192x192" }]
+    }
+  ]
+}
