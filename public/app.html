@@ -251,7 +251,7 @@
     // IndexedDB Layer
     // =====================
     const DB_NAME = 'progressive-life';
-    const DB_VER = 1;
+    const DB_VER = 2;
     let db = null;
 
     function openDB() {
@@ -264,6 +264,7 @@
           if (!d.objectStoreNames.contains('voices')) d.createObjectStore('voices', { keyPath: 'id' });
           if (!d.objectStoreNames.contains('episodes')) d.createObjectStore('episodes', { keyPath: 'id' });
           if (!d.objectStoreNames.contains('relations')) d.createObjectStore('relations', { keyPath: 'id' });
+          if (!d.objectStoreNames.contains('events')) d.createObjectStore('events', { keyPath: 'id' });
         };
       });
     }
@@ -437,94 +438,114 @@
       if (!voice) { alert('録音を選択してください'); return; }
 
       const blob = base64ToBlob(voice.blob, voice.mime);
-      if (blob.size > 30 * 1024 * 1024) { alert('30MBを超えるファイルは対応していません'); return; }
+      if (blob.size > 50 * 1024 * 1024) { alert('50MBを超えるファイルは対応していません'); return; }
 
       document.getElementById('sttSpinner').classList.remove('hidden');
       document.getElementById('sttBtn').disabled = true;
-      document.getElementById('sttStatus').textContent = '文字起こし中...（音声をサーバーに保存せず_proxy経由で処理中）';
       document.getElementById('sttProgressWrap').style.display = 'block';
-      document.getElementById('sttProgress').style.width = '30%';
+      document.getElementById('sttProgress').style.width = '20%';
+      document.getElementById('sttStatus').textContent = 'Voiceを保存してSTT Workflowを起動中...';
 
       try {
-        // Build form data
         const fd = new FormData();
         fd.append('file', blob, 'voice.webm');
-        fd.append('model', 'whisper-large-v3-turbo');
-        fd.append('language', 'ja');
-
-        const res = await fetch(`${API_BASE}/api/proxy/stt`, { method: 'POST', body: fd });
-        if (!res.ok) throw new Error('STT failed: ' + res.status);
+        fd.append('voice_id', voiceId);
+        const res = await fetch('/api/voice', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Workflow起動失敗: ' + res.status);
         const data = await res.json();
-        const transcript = data.text || '';
-        document.getElementById('sttProgress').style.width = '60%';
-        document.getElementById('sttStatus').textContent = 'エピソード分割中...';
+        document.getElementById('sttProgress').style.width = '45%';
+        document.getElementById('sttStatus').textContent = 'GitHub Actionsで文字起こし中...';
 
-        // Extract episodes locally
-        const episodes = extractEpisodes(transcript, voiceId);
-        for (const ep of episodes) await dbPut('episodes', ep);
-        document.getElementById('sttProgress').style.width = '100%';
-        document.getElementById('sttStatus').textContent = `${episodes.length}個のエピソードを作成しました`;
-
-        renderEpisodeList();
+        await dbPut('events', {
+          id: crypto.randomUUID(), type: 'event', action: 'stt_requested',
+          subject: voiceId, createdAt: new Date().toISOString(), data
+        });
+        document.getElementById('sttProgress').style.width = '70%';
+        document.getElementById('sttStatus').textContent = '完了後にEpisodeがGitHub Canonへ追加されます。数分後に再読み込みしてください。';
+        setTimeout(async () => {
+          try {
+            const view = await fetch('/view.json?ts=' + Date.now()).then(r => r.ok ? r.json() : null);
+            if (!view) return;
+            const eps = (view.episodes || []).filter(e => String(e.source || e.voice?.id || '').includes(voiceId));
+            for (const ep of eps) await dbPut('episodes', {
+              ...ep, createdAt: ep.createdAt || ep.created_at || new Date().toISOString(),
+              source: ep.source || voiceId, tags: ep.tags || []
+            });
+            if (eps.length) {
+              document.getElementById('sttProgress').style.width = '100%';
+              document.getElementById('sttStatus').textContent = eps.length + '個のEpisodeを同期しました';
+              renderEpisodeList();
+            }
+          } catch (_) {}
+        }, 30000);
       } catch (err) {
         console.error(err);
         alert('処理に失敗しました: ' + err.message);
+        document.getElementById('sttStatus').textContent = 'エラーが発生しました';
       } finally {
         document.getElementById('sttSpinner').classList.add('hidden');
         document.getElementById('sttBtn').disabled = false;
       }
     }
 
-    function extractEpisodes(transcript, voiceId) {
-      // Japanese-aware sentence split
-      const sentences = transcript.split(/[。！？!?\n]+/).map(s => s.trim()).filter(Boolean);
-      const breakers = ['その後','次に','そして','一方','さて','ところで','その頃','以前','去年','先週','先月','一昨年','ある日','それから','翌日','翌週','翌月','翌年'];
-
-      let groups = [];
-      let current = sentences.length ? [sentences[0]] : [];
-      for (let i = 1; i < sentences.length; i++) {
-        if (breakers.some(b => sentences[i].includes(b))) {
-          groups.push(current);
-          current = [sentences[i]];
-        } else {
-          current.push(sentences[i]);
-        }
-      }
-      if (current.length) groups.push(current);
-      if (!groups.length) groups = [sentences];
-
-      return groups.map((g, idx) => {
-        const text = g.join('。') + '。';
-        const summary = text.slice(0, 200) + (text.length > 200 ? '…' : '');
-        const title = g[0].slice(0, 28) + (g[0].length > 28 ? '…' : '');
-        return {
-          id: `${voiceId}-ep${String(idx).padStart(2, '0')}`,
-          type: 'episode',
-          createdAt: new Date().toISOString(),
-          source: voiceId,
-          title,
-          summary,
-          transcript: text,
-          voice: { id: voiceId },
-          confidence: 'candidate',
-          tags: [],
-        };
-      });
-    }
-
     async function renderEpisodeList() {
       const eps = await dbGetAll('episodes');
       const el = document.getElementById('episodeList');
       if (!eps.length) { el.innerHTML = '<p style="color:var(--muted)">エピソードがありません。録音を文字起こししてください。</p>'; return; }
-      el.innerHTML = eps.map(ep => `<div class="card">
-        <div class="card-title">${esc(ep.title)}</div>
+      el.innerHTML = eps.map((ep, i) => `<div class="card" draggable="true" data-ep-id="${esc(ep.id)}">
+        <div class="card-title"><span style="color:#aaa;margin-right:.4rem">${String(i+1).padStart(2,'0')}</span>${esc(ep.title)}</div>
         <div class="card-text">${esc(ep.summary)}</div>
-        <div class="card-tags">${ep.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+        <div class="card-tags">${(ep.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
         <div style="margin-top:0.5rem">
           <button class="btn-sm btn-secondary" onclick="editEp('${ep.id}')">✏️ 編集</button>
+          <button class="btn-sm btn-secondary" onclick="findRelations('${ep.id}')">🔗 関係候補</button>
           <button class="btn-sm btn-danger" onclick="delEp('${ep.id}')">🗑 削除</button>
         </div>
       </div>`).join('');
+
+      let dragged = null;
+      el.querySelectorAll('[data-ep-id]').forEach(card => {
+        card.addEventListener('dragstart', () => { dragged = card; card.style.opacity = '.45'; });
+        card.addEventListener('dragend', () => { card.style.opacity = ''; });
+        card.addEventListener('dragover', e => { e.preventDefault(); });
+        card.addEventListener('drop', async e => {
+          e.preventDefault();
+          if (!dragged || dragged === card) return;
+          const cards = [...el.querySelectorAll('[data-ep-id]')];
+          const from = cards.indexOf(dragged), to = cards.indexOf(card);
+          if (from < to) card.after(dragged); else card.before(dragged);
+          const ordered = [...el.querySelectorAll('[data-ep-id]')].map((n, idx) => ({id:n.dataset.epId, order:idx}));
+          const all = await dbGetAll('episodes');
+          for (const ep of all) {
+            const o = ordered.find(x => x.id === ep.id);
+            if (o) { ep.order = o.order; await dbPut('episodes', ep); }
+          }
+          await dbPut('events', {id:crypto.randomUUID(), type:'event', action:'episode_reordered',
+            createdAt:new Date().toISOString(), data:{order:ordered}});
+        });
+      });
+    }
+
+    async function findRelations(id) {
+      const eps = await dbGetAll('episodes');
+      const ep = eps.find(e => e.id === id); if (!ep) return;
+      const text = (ep.transcript || ep.summary || '').toLowerCase();
+      const stop = new Set(['これ','それ','こと','もの','よう','ため','です','ます','ある','いる','する','した','から','まで','そして']);
+      const words = text.split(/[、。！？\s]+/).filter(w => w.length >= 2 && !stop.has(w)).slice(0, 80);
+      const candidates = eps.filter(e => e.id !== id).map(other => {
+        const ot = (other.transcript || other.summary || '').toLowerCase();
+        const shared = [...new Set(words.filter(w => ot.includes(w)))];
+        return {other, shared, score:shared.length};
+      }).filter(x => x.score > 0).sort((a,b) => b.score-a.score).slice(0,5);
+      if (!candidates.length) { alert('関係候補はまだ見つかりません'); return; }
+      for (const c of candidates) {
+        await dbPut('relations', {id:crypto.randomUUID(), type:'relation', from:id, to:c.other.id,
+          relationType:'repeated_theme', score:c.score, evidence:c.shared, confidence:'candidate',
+          createdAt:new Date().toISOString()});
+      }
+      await dbPut('events', {id:crypto.randomUUID(), type:'event', action:'relation_candidates_created',
+        subject:id, createdAt:new Date().toISOString(), data:{count:candidates.length}});
+      alert(candidates.map(c => '・'+c.other.title+' ('+c.shared.join(', ')+')').join('\n'));
     }
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
