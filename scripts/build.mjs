@@ -63,3 +63,6 @@ const html = '<!doctype html><html lang="ja"><head>' +
 '}catch(err){status.textContent="マイクへのアクセスが許可されませんでした。"}});</script></body></html>';
 
 fs.writeFileSync("public/index.html", html);
+
+// The interactive PWA is the canonical deployed view; app.html remains directly addressable too.
+if (fs.existsSync("public/app.html")) fs.copyFileSync("public/app.html", "public/index.html");
