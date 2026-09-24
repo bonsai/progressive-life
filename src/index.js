@@ -161,6 +161,54 @@ export default {
       return Response.json({ ok: true, mode: "relay-only", stored: false });
     }
 
+    // --- Voice artifact: R2 + GitHub Actions dispatch ---
+    if (request.method === "POST" && url.pathname === "/api/voice") {
+      if (!env.VOICE_BUCKET) return Response.json({ error: "voice storage not configured" }, { status: 503 });
+      if (!env.GITHUB_TOKEN) return Response.json({ error: "workflow dispatch not configured" }, { status: 503 });
+      const form = await request.formData();
+      const file = form.get("file");
+      const voiceId = String(form.get("voice_id") || crypto.randomUUID());
+      if (!(file instanceof File)) return Response.json({ error: "file required" }, { status: 400 });
+      const safeId = voiceId.replace(/[^a-zA-Z0-9_-]/g, "-");
+      const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : ".webm";
+      const key = `voices/${safeId}${ext}`;
+      await env.VOICE_BUCKET.put(key, file.stream(), {
+        httpMetadata: { contentType: file.type || "application/octet-stream" },
+        customMetadata: { voice_id: safeId, original_name: file.name },
+      });
+      const audioUrl = `${url.origin}/api/voice/${encodeURIComponent(safeId)}`;
+      const repo = env.GITHUB_REPO || "bonsai/progressive-life";
+      const dispatch = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/stt-episode.yml/dispatches`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+          "Content-Type": "application/json",
+          "User-Agent": "progressive-life-worker",
+        },
+        body: JSON.stringify({ ref: "main", inputs: { audio_url: audioUrl, voice_id: safeId } }),
+      });
+      if (!dispatch.ok) return Response.json({ error: "workflow dispatch failed", detail: await dispatch.text() }, { status: 502 });
+      return Response.json({ ok: true, voice_id: safeId, audio_url: audioUrl, queued: true }, { headers: corsHeaders });
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith("/api/voice/")) {
+      if (!env.VOICE_BUCKET) return new Response("voice storage not configured", { status: 503 });
+      const voiceId = decodeURIComponent(url.pathname.slice("/api/voice/".length));
+      const listed = await env.VOICE_BUCKET.list({ prefix: `voices/${voiceId}`, limit: 1 });
+      const object = listed.objects[0];
+      if (!object) return new Response("Voice not found", { status: 404 });
+      const stored = await env.VOICE_BUCKET.get(object.key);
+      if (!stored) return new Response("Voice not found", { status: 404 });
+      return new Response(stored.body, {
+        headers: {
+          "Content-Type": stored.httpMetadata?.contentType || "application/octet-stream",
+          "Cache-Control": "private, max-age=60",
+        },
+      });
+    }
+
     // --- Static assets (SPA) ---
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
