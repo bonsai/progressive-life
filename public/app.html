@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>progressive-life — あなたの半生記</title>
+  <meta name="description" content="マイクに向かって語るだけ。個人情報はブラウザ内で完結。">
+  <meta name="theme-color" content="#8b4513">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <!-- jsPDF for PDF generation (browser-only, no server upload) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --accent: #8b4513;
+      --accent-light: #d4a574;
+      --danger: #c0392b;
+      --card: #fff;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { font-size: 18px; }
+    body {
+      font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+      background: var(--bg); color: var(--ink);
+      line-height: 1.8; min-height: 100vh;
+    }
+    .container { max-width: 640px; margin: 0 auto; padding: 0 1rem; }
+    h1 { font-size: 1.6rem; font-weight: 700; }
+    h2 { font-size: 1.3rem; font-weight: 700; margin: 1.5rem 0 0.8rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; }
+    p { color: var(--muted); font-size: 0.95rem; }
+
+    /* Header */
+    .header {
+      padding: 1rem 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-weight: 700; color: var(--accent); letter-spacing: 0.03em; font-size: 1.1rem; }
+    .privacy-badge {
+      font-size: 0.7rem; background: #e8f5e9; color: #2e7d32;
+      padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;
+    }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0.5rem; margin: 1rem 0; overflow-x: auto; }
+    .tab {
+      padding: 0.5rem 1rem; border-radius: 999px; border: none;
+      background: transparent; color: var(--muted); font-size: 0.9rem;
+      cursor: pointer; white-space: nowrap; font-weight: 500;
+    }
+    .tab.active { background: var(--ink); color: #fff; }
+
+    /* Sections */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Record button */
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+    .rec-wrap { text-align: center; padding: 2rem 0; }
+    .rec-btn {
+      width: 96px; height: 96px; border-radius: 50%;
+      border: none; background: var(--danger); color: #fff;
+      font-size: 2.2rem; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(192,57,43,0.35);
+      animation: pulse 2s infinite; display: inline-flex;
+      align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .rec-btn:hover { animation: none; transform: scale(1.05); }
+    .rec-btn.recording { background: #1a1a1a; animation: none; }
+    .rec-status { font-size: 0.9rem; color: var(--muted); min-height: 2.5rem; }
+    .rec-timer { font-size: 2rem; font-weight: 700; color: var(--danger); font-variant-numeric: tabular-nums; }
+
+    /* Lists */
+    .list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .item {
+      background: var(--card); border-radius: var(--radius);
+      padding: 1rem; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 0.8rem;
+    }
+    .item-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .item-body { flex: 1; min-width: 0; }
+    .item-title { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-meta { font-size: 0.8rem; color: var(--muted); }
+    .item-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .btn-sm {
+      padding: 0.35rem 0.7rem; border-radius: 6px; border: none;
+      font-size: 0.8rem; cursor: pointer; font-weight: 600;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: #f0f0f0; color: var(--ink); }
+    .btn-danger { background: #fee; color: var(--danger); }
+
+    /* Cards */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 1.2rem; box-shadow: var(--shadow);
+      margin-bottom: 0.75rem;
+    }
+    .card-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.4rem; }
+    .card-text { font-size: 0.9rem; color: var(--muted); white-space: pre-wrap; }
+    .card-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .tag { font-size: 0.75rem; background: #f0f0f0; color: var(--muted); padding: 0.15rem 0.5rem; border-radius: 4px; }
+
+    /* Forms */
+    input, textarea, select {
+      width: 100%; padding: 0.8rem; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 1rem; font-family: inherit;
+      margin-bottom: 0.75rem;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    .cta {
+      display: block; width: 100%; padding: 1rem;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: var(--radius); font-size: 1.1rem; font-weight: 700;
+      cursor: pointer; text-align: center; text-decoration: none;
+    }
+    .cta:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Progress */
+    .progress { background: #eee; border-radius: 999px; height: 8px; overflow: hidden; margin: 1rem 0; }
+    .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
+
+    /* Warning */
+    .warn { background: #fdf2f2; border: 1px solid #f5c6cb; border-radius: 8px; padding: 1rem; font-size: 0.85rem; color: #721c24; margin: 1rem 0; }
+    .info { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 1rem; font-size: 0.85rem; color: #0d47a1; margin: 1rem 0; }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+
+    /* Standalone (home screen) adjustments */
+    body.standalone .header { padding-top: env(safe-area-inset-top, 1rem); }
+    body.standalone { padding-bottom: env(safe-area-inset-bottom); }
+
+    /* Install prompt */
+    .install-prompt {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--card); padding: 1rem;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 100; border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .install-prompt button { padding: 0.6rem 1.2rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 20px; height: 20px; border: 2px solid #ddd; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">progressive-life</div>
+      <span class="privacy-badge">🔒 ブラウザ内完結</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="record">🎙 録音</button>
+      <button class="tab" data-tab="episodes">📝 エピソード</button>
+      <button class="tab" data-tab="pdf">📄 PDF</button>
+      <button class="tab" data-tab="settings">⚙️ 設定</button>
+    </div>
+
+    <!-- RECORD TAB -->
+    <div id="tab-record" class="section active">
+      <div class="rec-wrap">
+        <div class="rec-timer" id="timer">00:00</div>
+        <button class="rec-btn" id="recBtn">🎙</button>
+        <div class="rec-status" id="recStatus">ボタンを押して録音を開始</div>
+      </div>
+
+      <h2>録音リスト</h2>
+      <div class="list" id="recordList"><p style="color:var(--muted)">まだ録音がありません</p></div>
+    </div>
+
+    <!-- EPISODES TAB -->
+    <div id="tab-episodes" class="section">
+      <h2>エピソード</h2>
+      <p>録音を文字に起こして、テーマごとに整理します</p>
+      <div class="info">個人情報はブラウザ内で処理されます。サーバーに保存されません。</div>
+
+      <div id="epProcess">
+        <select id="voiceSelect"><option>録音を選択...</option></select>
+        <button class="cta" id="sttBtn" onclick="runSTT()">
+          <span id="sttSpinner" class="spinner hidden"></span>
+          文字起こし & エピソード化
+        </button>
+      </div>
+
+      <div class="progress" id="sttProgressWrap" style="display:none">
+        <div class="progress-bar" id="sttProgress"></div>
+      </div>
+      <div id="sttStatus" style="font-size:0.85rem;color:var(--muted);margin:0.5rem 0"></div>
+
+      <div id="episodeList" style="margin-top:1.5rem"></div>
+    </div>
+
+    <!-- PDF TAB -->
+    <div id="tab-pdf" class="section">
+      <h2>PDF生成</h2>
+      <p>半生記と遺言状参考資料のPDFを作成します</p>
+
+      <div class="warn">
+        <strong>⚠ 重要</strong><br>
+        本サービスが生成する「遺言状参考資料」は実際の遺言としての法的効力を持ちません。<br>
+        法的効力を持たせるには、公証役場での手続きが必要です。
+      </div>
+
+      <h3>プロフィール（任意）</h3>
+      <input id="pName" placeholder="お名前">
+      <input id="pBirth" placeholder="生年月日（例：1960年5月1日）">
+      <input id="pAddress" placeholder="現住所">
+
+      <h3>送付先メールアドレス</h3>
+      <input type="email" id="mailTo" placeholder="example@mail.com">
+
+      <button class="cta" id="pdfBtn" onclick="generateAndSend()">
+        <span id="pdfSpinner" class="spinner hidden"></span>
+        PDFを作成してメールで送る
+      </button>
+      <div id="pdfStatus" style="font-size:0.85rem;color:var(--muted);margin-top:0.5rem"></div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tab-settings" class="section">
+      <h2>データ管理</h2>
+      <div class="info">すべてのデータはこのブラウザに保存されています。他の端末では見えません。</div>
+
+      <button class="cta" onclick="exportData()" style="margin-bottom:0.5rem;background:#333">💾 データをエクスポート（JSON）</button>
+      <button class="cta" onclick="importData()" style="margin-bottom:0.5rem;background:#555">📂 データをインポート</button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="doImport(this)">
+
+      <button class="cta" onclick="clearAll()" style="background:var(--danger)">🗑 すべてのデータを削除</button>
+
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-title">使用状況</div>
+        <div class="card-text" id="usageStats">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =====================
+    // IndexedDB Layer
+    // =====================
+    const DB_NAME = 'progressive-life';
+    const DB_VER = 1;
+    let db = null;
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+        req.onupgradeneeded = (e) => {
+          const d = e.target.result;
+          if (!d.objectStoreNames.contains('voices')) d.createObjectStore('voices', { keyPath: 'id' });
+          if (!d.objectStoreNames.contains('episodes')) d.createObjectStore('episodes', { keyPath: 'id' });
+          if (!d.objectStoreNames.contains('relations')) d.createObjectStore('relations', { keyPath: 'id' });
+        };
+      });
+    }
+
+    async function dbPut(store, data) {
+      if (!db) db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        const req = tx.objectStore(store).put(data);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGetAll(store) {
+      if (!db) db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbDelete(store, id) {
+      if (!db) db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        const req = tx.objectStore(store).delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbClear(store) {
+      if (!db) db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        const req = tx.objectStore(store).clear();
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // =====================
+    // UI: Tabs
+    // =====================
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'record') renderRecordList();
+        if (tab.dataset.tab === 'episodes') renderEpisodeList();
+      });
+    });
+
+    // =====================
+    // Recording
+    // =====================
+    let rec = null, chunks = [], stream = null, recTimer = null, sec = 0;
+    const MAX_SEC = 3600; // 60 min
+
+    document.getElementById('recBtn').addEventListener('click', async () => {
+      if (rec?.state === 'recording') { stopRec(); return; }
+      if (!navigator.mediaDevices?.getUserMedia) { alert('お使いのブラウザでは録音できません'); return; }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+        rec = new MediaRecorder(stream, { mimeType: mime });
+        rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = async () => {
+          const blob = new Blob(chunks, { type: mime });
+          const id =crypto.randomUUID();
+          const voice = { id, blob: await blobToBase64(blob), mime, size: blob.size, createdAt: new Date().toISOString(), duration: sec };
+          await dbPut('voices', voice);
+          renderRecordList();
+          document.getElementById('recStatus').textContent = '録音を保存しました';
+          stream?.getTracks().forEach(t => t.stop());
+          document.getElementById('recBtn').classList.remove('recording');
+        };
+        rec.start(1000);
+        sec = 0;
+        updateTimer();
+        recTimer = setInterval(() => { sec++; updateTimer(); if (sec >= MAX_SEC) stopRec(); }, 1000);
+        document.getElementById('recBtn').classList.add('recording');
+        document.getElementById('recStatus').innerHTML = '<span style="color:var(--danger);font-weight:700">● 録音中</span> もう一度押して停止';
+      } catch (err) { alert('マイクへのアクセスが許可されませんでした'); }
+    });
+
+    function stopRec() {
+      if (recTimer) clearInterval(recTimer);
+      if (rec?.state === 'recording') rec.stop();
+    }
+
+    function updateTimer() {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = `${m}:${s}`;
+    }
+
+    async function renderRecordList() {
+      const voices = await dbGetAll('voices');
+      const el = document.getElementById('recordList');
+      if (!voices.length) { el.innerHTML = '<p style="color:var(--muted)">まだ録音がありません</p>'; return; }
+      el.innerHTML = voices.map(v => {
+        const date = new Date(v.createdAt).toLocaleString('ja-JP');
+        const size = (v.size / 1024 / 1024).toFixed(1);
+        const dur = v.duration ? `${Math.floor(v.duration / 60)}:${String(v.duration % 60).padStart(2, '0')}` : '?';
+        return `<div class="item">
+          <div class="item-icon">🎙</div>
+          <div class="item-body">
+            <div class="item-title">${date}</div>
+            <div class="item-meta">${dur} · ${size}MB</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-sm btn-primary" onclick="playVoice('${v.id}')">▶</button>
+            <button class="btn-sm btn-danger" onclick="deleteVoice('${v.id}')">🗑</button>
+          </div>
+        </div>`;
+      }).join('');
+      updateVoiceSelect();
+      updateUsage();
+    }
+
+    async function playVoice(id) {
+      const v = (await dbGetAll('voices')).find(x => x.id === id);
+      if (!v) return;
+      const blob = base64ToBlob(v.blob, v.mime);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('audio');
+      a.src = url; a.controls = true; a.autoplay = true;
+      a.style.width = '100%';
+      const item = document.querySelector(`button[onclick="playVoice('${id}')"]`)?.closest('.item');
+      if (item) { item.after(a); a.onended = () => a.remove(); }
+    }
+
+    async function deleteVoice(id) {
+      if (!confirm('この録音を削除しますか？')) return;
+      await dbDelete('voices', id);
+      renderRecordList();
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onloadend = () => resolve(r.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+      });
+    }
+    function base64ToBlob(b64, mime) {
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    }
+
+    // =====================
+    // STT via Worker Proxy
+    // =====================
+    const API_BASE = location.origin; // Same origin (Workers)
+
+    async function runSTT() {
+      const voices = await dbGetAll('voices');
+      const sel = document.getElementById('voiceSelect');
+      const voiceId = sel.value;
+      const voice = voices.find(v => v.id === voiceId);
+      if (!voice) { alert('録音を選択してください'); return; }
+
+      const blob = base64ToBlob(voice.blob, voice.mime);
+      if (blob.size > 30 * 1024 * 1024) { alert('30MBを超えるファイルは対応していません'); return; }
+
+      document.getElementById('sttSpinner').classList.remove('hidden');
+      document.getElementById('sttBtn').disabled = true;
+      document.getElementById('sttStatus').textContent = '文字起こし中...（音声をサーバーに保存せず_proxy経由で処理中）';
+      document.getElementById('sttProgressWrap').style.display = 'block';
+      document.getElementById('sttProgress').style.width = '30%';
+
+      try {
+        // Build form data
+        const fd = new FormData();
+        fd.append('file', blob, 'voice.webm');
+        fd.append('model', 'whisper-large-v3-turbo');
+        fd.append('language', 'ja');
+
+        const res = await fetch(`${API_BASE}/api/proxy/stt`, { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('STT failed: ' + res.status);
+        const data = await res.json();
+        const transcript = data.text || '';
+        document.getElementById('sttProgress').style.width = '60%';
+        document.getElementById('sttStatus').textContent = 'エピソード分割中...';
+
+        // Extract episodes locally
+        const episodes = extractEpisodes(transcript, voiceId);
+        for (const ep of episodes) await dbPut('episodes', ep);
+        document.getElementById('sttProgress').style.width = '100%';
+        document.getElementById('sttStatus').textContent = `${episodes.length}個のエピソードを作成しました`;
+
+        renderEpisodeList();
+      } catch (err) {
+        console.error(err);
+        alert('処理に失敗しました: ' + err.message);
+      } finally {
+        document.getElementById('sttSpinner').classList.add('hidden');
+        document.getElementById('sttBtn').disabled = false;
+      }
+    }
+
+    function extractEpisodes(transcript, voiceId) {
+      // Japanese-aware sentence split
+      const sentences = transcript.split(/[。！？!?\n]+/).map(s => s.trim()).filter(Boolean);
+      const breakers = ['その後','次に','そして','一方','さて','ところで','その頃','以前','去年','先週','先月','一昨年','ある日','それから','翌日','翌週','翌月','翌年'];
+
+      let groups = [];
+      let current = sentences.length ? [sentences[0]] : [];
+      for (let i = 1; i < sentences.length; i++) {
+        if (breakers.some(b => sentences[i].includes(b))) {
+          groups.push(current);
+          current = [sentences[i]];
+        } else {
+          current.push(sentences[i]);
+        }
+      }
+      if (current.length) groups.push(current);
+      if (!groups.length) groups = [sentences];
+
+      return groups.map((g, idx) => {
+        const text = g.join('。') + '。';
+        const summary = text.slice(0, 200) + (text.length > 200 ? '…' : '');
+        const title = g[0].slice(0, 28) + (g[0].length > 28 ? '…' : '');
+        return {
+          id: `${voiceId}-ep${String(idx).padStart(2, '0')}`,
+          type: 'episode',
+          createdAt: new Date().toISOString(),
+          source: voiceId,
+          title,
+          summary,
+          transcript: text,
+          voice: { id: voiceId },
+          confidence: 'candidate',
+          tags: [],
+        };
+      });
+    }
+
+    async function renderEpisodeList() {
+      const eps = await dbGetAll('episodes');
+      const el = document.getElementById('episodeList');
+      if (!eps.length) { el.innerHTML = '<p style="color:var(--muted)">エピソードがありません。録音を文字起こししてください。</p>'; return; }
+      el.innerHTML = eps.map(ep => `<div class="card">
+        <div class="card-title">${esc(ep.title)}</div>
+        <div class="card-text">${esc(ep.summary)}</div>
+        <div class="card-tags">${ep.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+        <div style="margin-top:0.5rem">
+          <button class="btn-sm btn-secondary" onclick="editEp('${ep.id}')">✏️ 編集</button>
+          <button class="btn-sm btn-danger" onclick="delEp('${ep.id}')">🗑 削除</button>
+        </div>
+      </div>`).join('');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    async function updateVoiceSelect() {
+      const voices = await dbGetAll('voices');
+      const sel = document.getElementById('voiceSelect');
+      sel.innerHTML = voices.map(v => `<option value="${v.id}">${new Date(v.createdAt).toLocaleDateString('ja-JP')} (${Math.floor((v.duration||0)/60)}分)</option>`).join('');
+    }
+
+    async function editEp(id) {
+      const eps = await dbGetAll('episodes');
+      const ep = eps.find(e => e.id === id);
+      if (!ep) return;
+      const nt = prompt('タイトル:', ep.title); if (nt === null) return;
+      const ns = prompt('内容:', ep.summary); if (ns === null) return;
+      ep.title = nt; ep.summary = ns;
+      await dbPut('episodes', ep);
+      renderEpisodeList();
+    }
+
+    async function delEp(id) {
+      if (!confirm('削除しますか？')) return;
+      await dbDelete('episodes', id);
+      renderEpisodeList();
+    }
+
+    // =====================
+    // PDF Generation (jsPDF)
+    // =====================
+    async function generateAndSend() {
+      const episodes = await dbGetAll('episodes');
+      if (!episodes.length) { alert('エピソードがありません。先に文字起こしを行ってください。'); return; }
+
+      const to = document.getElementById('mailTo').value.trim();
+      if (!to) { alert('メールアドレスを入力してください'); return; }
+
+      document.getElementById('pdfSpinner').classList.remove('hidden');
+      document.getElementById('pdfBtn').disabled = true;
+      document.getElementById('pdfStatus').textContent = 'PDFを作成中...（ブラウザ内で完結）';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        // Helper
+        const addPageHeader = (title) => {
+          doc.setFontSize(10); doc.setTextColor(150);
+          doc.text('progressive-life — ブラウザ内完結', 20, 10);
+          doc.setFontSize(14); doc.setTextColor(0);
+          doc.text(title, 20, 20);
+          doc.setDrawColor(200); doc.line(20, 22, 190, 22);
+          doc.setFontSize(11); doc.setTextColor(80);
+        };
+
+        // --- PAGE 1: Title ---
+        doc.setFontSize(22); doc.setTextColor(139, 69, 19); // #8B4513
+        doc.text('あなたの半生記', 105, 60, { align: 'center' });
+        doc.setFontSize(14); doc.setTextColor(0);
+        const name = document.getElementById('pName').value;
+        if (name) doc.text(`${name} 様`, 105, 80, { align: 'center' });
+        doc.setFontSize(10); doc.setTextColor(120);
+        doc.text(`作成日: ${new Date().toLocaleDateString('ja-JP')}`, 105, 95, { align: 'center' });
+        doc.setFontSize(9); doc.setTextColor(180);
+        doc.text('本資料は参考資料です。', 105, 280, { align: 'center' });
+
+        // --- PAGE 2+: Biography ---
+        doc.addPage();
+        addPageHeader('半生記');
+        let y = 30;
+        doc.setFontSize(11); doc.setTextColor(60);
+        const bioIntro = `この半生記は、${name || 'あなた'}の声を文字に起こし、テーマごとに整理したものです。${episodes.length}のエピソードから構成されています。`;
+        const bioLines = doc.splitTextToSize(bioIntro, 170);
+        doc.text(bioLines, 20, y); y += bioLines.length * 6 + 4;
+
+        for (const ep of episodes) {
+          if (y > 260) { doc.addPage(); addPageHeader('半生記'); y = 30; }
+          doc.setFontSize(12); doc.setTextColor(0);
+          doc.text(`■ ${ep.title}`, 20, y); y += 6;
+          doc.setFontSize(10); doc.setTextColor(80);
+          const lines = doc.splitTextToSize(ep.summary, 170);
+          doc.text(lines, 20, y); y += lines.length * 5 + 8;
+        }
+
+        // --- PAGE: Profile ---
+        doc.addPage();
+        addPageHeader('プロフィール');
+        y = 30;
+        doc.setFontSize(11); doc.setTextColor(0);
+        const p = [
+          ['お名前', document.getElementById('pName').value || '（未記入）'],
+          ['生年月日', document.getElementById('pBirth').value || '（未記入）'],
+          ['現住所', document.getElementById('pAddress').value || '（未記入）'],
+        ];
+        for (const [k, v] of p) {
+          doc.text(`${k}:`, 20, y);
+          doc.setTextColor(60);
+          const vl = doc.splitTextToSize(v, 140);
+          doc.text(vl, 70, y); y += vl.length * 6 + 4;
+          doc.setTextColor(0);
+        }
+
+        // --- PAGE: Will Reference ---
+        doc.addPage();
+        addPageHeader('遺言状参考資料');
+        y = 30;
+        doc.setFontSize(14); doc.setTextColor(139, 69, 19);
+        doc.text('※ 参考資料です。法的効力を持たせるには公証役場での手続きが必要です。', 20, y); y += 12;
+        doc.setFontSize(11); doc.setTextColor(60);
+        const willText = `私、${name || '○○'}は、自らの意思に基づき、以下の通り遺言の参考資料を作成しました。\n\n` +
+          `【財産に関する意向】\n（この欄は参考用です。実際の遺言では、不動産預貯金等有価証券等の具体的な財産とその分配方法を記載します。）\n\n` +
+          `【身元引受人・遺言執行者】\n（参考：信頼する家族や弁護士等を検討してください。）\n\n` +
+          `【最後の意思】\n` + episodes.slice(0, 3).map(e => `・${e.title}: ${e.summary.slice(0, 80)}…`).join('\n') + `\n\n` +
+          `【注意事項】\n・本文書は遺言の参考資料であり、相続法上の「自筆証書遺言」「公正証書遺言」「秘密証書遺言」のいずれにも該当しません。\n` +
+          `・法的効力を持たせるには、公証役場の手続き（公正証書遺言）または自筆証書遺言の法定方式が必要です。\n` +
+          `・相続に関する詳細は、必ず公証人・弁護士・税理士にご相談ください。`;
+        const willLines = doc.splitTextToSize(willText, 170);
+        doc.text(willLines, 20, y);
+
+        // Save as base64
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+        // Send via mail relay
+        document.getElementById('pdfStatus').textContent = 'メール送信中...';
+        const mailRes = await fetch(`${API_BASE}/api/proxy/mail`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to,
+            subject: `${name || 'あなた'}の半生記と遺言状参考資料`,
+            body: '<p>ご利用ありがとうございます。</p><p>PDFファイルを添付いたします。</p><p style="color:#c0392b;font-weight:bold">※遺言状参考資料は参考資料です。法的効力を持たせるには公証役場での手続きが必要です。</p>',
+            attachment: pdfBase64,
+            filename: `progressive-life-${new Date().toISOString().slice(0,10)}.pdf`,
+          })
+        });
+
+        if (!mailRes.ok) throw new Error('Mail failed');
+        document.getElementById('pdfStatus').innerHTML = '<span style="color:green;font-weight:700">✓ メールを送信しました</span>';
+      } catch (err) {
+        console.error(err);
+        alert('送信に失敗しました: ' + err.message);
+        document.getElementById('pdfStatus').textContent = 'エラーが発生しました';
+      } finally {
+        document.getElementById('pdfSpinner').classList.add('hidden');
+        document.getElementById('pdfBtn').disabled = false;
+      }
+    }
+
+    // =====================
+    // Data Management
+    // =====================
+    async function exportData() {
+      const data = {
+        voices: await dbGetAll('voices'),
+        episodes: await dbGetAll('episodes'),
+        relations: await dbGetAll('relations'),
+        exportedAt: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `progressive-life-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    function importData() { document.getElementById('importFile').click(); }
+
+    async function doImport(input) {
+      const f = input.files[0]; if (!f) return;
+      const text = await f.text();
+      try {
+        const data = JSON.parse(text);
+        let count = 0;
+        for (const v of data.voices || []) { await dbPut('voices', v); count++; }
+        for (const e of data.episodes || []) { await dbPut('episodes', e); count++; }
+        for (const r of data.relations || []) { await dbPut('relations', r); count++; }
+        alert(`${count}件のデータを復元しました`);
+        renderRecordList(); renderEpisodeList(); updateUsage();
+      } catch (err) { alert('読み込みに失敗しました'); }
+    }
+
+    async function clearAll() {
+      if (!confirm('すべての録音・エピソードを削除します。本当によろしいですか？')) return;
+      await dbClear('voices'); await dbClear('episodes'); await dbClear('relations');
+      renderRecordList(); renderEpisodeList(); updateUsage();
+    }
+
+    async function updateUsage() {
+      const voices = await dbGetAll('voices');
+      const episodes = await dbGetAll('episodes');
+      const totalMB = voices.reduce((s, v) => s + (v.size || 0), 0) / 1024 / 1024;
+      const totalMin = voices.reduce((s, v) => s + (v.duration || 0), 0) / 60;
+      document.getElementById('usageStats').innerHTML =
+        `録音: ${voices.length}件 / エピソード: ${episodes.length}件<br>` +
+        `合計: ${totalMB.toFixed(1)}MB / ${totalMin.toFixed(0)}分`;
+    }
+
+    // Init
+    renderRecordList();
+    updateUsage();
+
+    // =====================
+    // PWA: Service Worker
+    // =====================
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('SW registered'))
+        .catch(err => console.error('SW failed', err));
+    }
+
+    // Standalone detection (launched from home screen)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (isStandalone) {
+      document.body.classList.add('standalone');
+    }
+
+    // Online/offline indicator
+    function updateOnline() {
+      const badge = document.querySelector('.privacy-badge');
+      if (!navigator.onLine) {
+        badge.textContent = '📴 オフライン';
+        badge.style.background = '#fff3e0';
+        badge.style.color = '#e65100';
+      } else {
+        badge.textContent = '🔒 ブラウザ内完結';
+        badge.style.background = '#e8f5e9';
+        badge.style.color = '#2e7d32';
+      }
+    }
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    updateOnline();
+
+    // =====================
+    // SPA: URL hash routing
+    // =====================
+    function routeFromHash() {
+      const hash = location.hash.replace('#', '');
+      const valid = ['record', 'episodes', 'pdf', 'settings'];
+      const tab = valid.includes(hash) ? hash : 'record';
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
+      if (tab === 'record') renderRecordList();
+      if (tab === 'episodes') renderEpisodeList();
+    }
+    window.addEventListener('hashchange', routeFromHash);
+    if (location.hash) routeFromHash();
+
+    // =====================
+    // PWA: Install prompt
+    // =====================
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!isStandalone) {
+        document.getElementById('installPrompt').classList.remove('hidden');
+      }
+    });
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('installPrompt').classList.add('hidden');
+      deferredPrompt = null;
+    });
+    async function installPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('installPrompt').classList.add('hidden');
+      }
+      deferredPrompt = null;
+    }
+  </script>
+
+  <!-- Install prompt -->
+  <div id="installPrompt" class="install-prompt hidden">
+    <div>
+      <div style="font-weight:700">ホーム画面に追加</div>
+      <div style="font-size:0.8rem;color:var(--muted)">いつでもすぐに録音を始められます</div>
+    </div>
+    <button onclick="installPWA()">追加</button>
+  </div>
+</body>
+</html>
