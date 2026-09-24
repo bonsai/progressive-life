@@ -30,7 +30,7 @@ export default {
 
     // --- Health check ---
     if (url.pathname === "/api/health") {
-      return Response.json({ ok: true, mode: "privacy-first", storage: "none" });
+      return Response.json({ ok: true, mode: "privacy-first", storage: "r2+github-actions" }, { headers: corsHeaders });
     }
 
     // --- Proxy: Sakura STT ---
