@@ -489,7 +489,7 @@
     }
 
     async function renderEpisodeList() {
-      const eps = await dbGetAll('episodes');
+      const eps = (await dbGetAll('episodes')).sort((a,b) => (a.order ?? 999999) - (b.order ?? 999999));
       const el = document.getElementById('episodeList');
       if (!eps.length) { el.innerHTML = '<p style="color:var(--muted)">エピソードがありません。録音を文字起こししてください。</p>'; return; }
       el.innerHTML = eps.map((ep, i) => `<div class="card" draggable="true" data-ep-id="${esc(ep.id)}">
