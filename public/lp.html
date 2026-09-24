@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>声で残す半生記｜progressive-life</title>
+  <meta name="description" content="マイクに向かって語るだけ。あなたの人生が、家族の宝物になる。3ヶ月1万円。">
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --accent: #8b4513;
+      --accent-light: #d4a574;
+      --warn: #c0392b;
+      --card: #ffffff;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-size: 20px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.9;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Typography */
+    h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; line-height: 1.4; letter-spacing: -0.02em; }
+    h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 700; line-height: 1.4; margin-bottom: 1.5rem; }
+    h3 { font-size: clamp(1.2rem, 3vw, 1.6rem); font-weight: 600; margin-bottom: 1rem; }
+    p { font-size: clamp(1rem, 2.5vw, 1.15rem); color: var(--muted); }
+    .lead { font-size: clamp(1.1rem, 2.8vw, 1.35rem); color: var(--ink); font-weight: 500; }
+
+    /* Layout */
+    .container { max-width: 720px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 4rem 0; }
+    section.alt { background: var(--card); }
+
+    /* Header */
+    .site-header {
+      padding: 1.5rem 0;
+      text-align: center;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .logo { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+    }
+    .hero h1 { margin-bottom: 1.5rem; }
+    .hero .lead { margin-bottom: 2.5rem; max-width: 560px; margin-left: auto; margin-right: auto; }
+    .hero-img {
+      width: 120px; height: 120px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      margin: 0 auto 2rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem;
+    }
+
+    /* Price pill */
+    .price-pill {
+      display: inline-block;
+      background: var(--ink);
+      color: #fff;
+      padding: 0.6rem 1.5rem;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
+
+    /* Buttons */
+    .cta {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 1.2rem 3rem;
+      border-radius: var(--radius);
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cta:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+    .cta-warn {
+      background: var(--warn);
+    }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 2.5rem; margin-top: 2rem; }
+    .step {
+      display: flex; align-items: flex-start; gap: 1.2rem;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 3rem; height: 3rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 700;
+    }
+    .step-body h3 { margin-bottom: 0.4rem; }
+    .step-body p { color: var(--muted); }
+
+    /* Pain points */
+    .pain-grid {
+      display: grid;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .pain-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--accent-light);
+    }
+    .pain-card p { color: var(--muted); margin-top: 0.5rem; }
+
+    /* Warning box */
+    .warn-box {
+      background: #fdf2f2;
+      border: 1px solid #f5c6cb;
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+    .warn-box h3 { color: var(--warn); font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .warn-box p { color: #721c24; font-size: 0.95rem; line-height: 1.8; }
+
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid rgba(0,0,0,0.08); padding: 1.5rem 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .faq-a { color: var(--muted); }
+
+    /* Footer */
+    .site-footer {
+      text-align: center;
+      padding: 3rem 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+
+    /* Microphone pulse */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+    .record-btn {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: var(--warn);
+      color: #fff;
+      font-size: 2rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(192,57,43,0.3);
+      animation: pulse 2s infinite;
+      margin: 2rem auto;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .record-btn:hover { animation: none; transform: scale(1.05); }
+
+    /* Tablet+ */
+    @media (min-width: 768px) {
+      .pain-grid { grid-template-columns: repeat(2, 1fr); }
+      .steps { gap: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="logo">progressive-life</div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-img">🎙</div>
+      <div class="price-pill">3ヶ月 10,000円（税込）</div>
+      <h1>声で残す、<br>あなたの半生記</h1>
+      <p class="lead">
+        マイクに向かって、ただ語るだけ。<br>
+        あなたの人生が、家族の宝物になります。<br>
+        1日60分まで。翌朝、テキストカードが届きます。
+      </p>
+      <a href="#start" class="cta">今すぐ録音を始める</a>
+    </div>
+  </section>
+
+  <!-- Pain -->
+  <section class="alt">
+    <div class="container">
+      <h2>こんな悩み、ありませんか？</h2>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <h3>📝 書き留めるのが面倒</h3>
+          <p>日記も便箋も、書き始めるまでが大変。昔のことを振り返るのに、ペンを持つ気力が出ない。</p>
+        </div>
+        <div class="pain-card">
+          <h3>⏳ 遺言を考えたことがない</h3>
+          <p>「まだ先の話」と思っていて、気づけば手遅れ。「もっと早く話しておけばよかった」と後悔しないために。</p>
+        </div>
+        <div class="pain-card">
+          <h3>👨‍👩‍👧‍👦 家族に伝えたいことがある</h3>
+          <p>子どもたちに、自分の生きてきた道のりを伝えたい。でも、いざ話す機会がない。</p>
+        </div>
+        <div class="pain-card">
+          <h3>💭 思い出が風化している</h3>
+          <p>母の声、あの日の景色、大切だった人の名前。記憶は確実に薄れていく。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Solution -->
+  <section>
+    <div class="container">
+      <h2>マイクに向かって話すだけ</h2>
+      <p class="lead">スマホやパソコンのマイクに向かって、思い出を語ってください。あとは全部お任せ。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>今日あったことを語る</h3>
+            <p>1日60分まで、何度でも録音できます。買い物の帰り、寝る前、朝の散歩の途中。<br>いつでも、どこでも、思い立ったときに。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>翌朝、テキストカードが届く</h3>
+            <p>夜間にAIが音声を文字に起こし、テーマごとに整理。翌朝にはブラウザで「あなたの半生記カード」が並んでいます。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>3ヶ月後、PDFが完成</h3>
+            <p>30日間の録音が終わると、「半生記」と「遺言状参考資料」のPDFがメールで届きます。家族に渡す、印刷して残す、自由に。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo / Recording -->
+  <section class="alt" id="start">
+    <div class="container" style="text-align:center;">
+      <h2>今すぐ、1秒から始められます</h2>
+      <p style="margin-bottom:2rem;">下のボタンを押して、何か1つ語ってみてください。<br>最初から完璧である必要はありません。</p>
+      <button class="record-btn" id="micBtn" aria-label="録音開始">🎙</button>
+      <p id="status" style="color:var(--muted);min-height:2rem;"></p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-top:1rem;">※マイクへのアクセスを許可してください。録音された音声は安全なサーバーに保存されます。</p>
+    </div>
+  </section>
+
+  <!-- Price -->
+  <section>
+    <div class="container" style="text-align:center;">
+      <h2>料金はシンプル</h2>
+      <div style="background:var(--card);border-radius:var(--radius);padding:2.5rem;box-shadow:var(--shadow);max-width:480px;margin:0 auto;">
+        <div style="font-size:2.5rem;font-weight:700;color:var(--accent);">10,000円</div>
+        <div style="font-size:1.1rem;color:var(--muted);margin-bottom:1.5rem;">3ヶ月間（税込）</div>
+        <ul style="text-align:left;display:inline-block;color:var(--muted);line-height:2.2;">
+          <li>✓ 1日60分まで録音可能</li>
+          <li>✓ 30日分の半生記PDF生成</li>
+          <li>✓ 遺言状参考資料PDF生成</li>
+          <li>✓ メールでPDF配信</li>
+          <li>✓ 翌朝テキストカード表示</li>
+        </ul>
+      </div>
+      <a href="#start" class="cta" style="margin-top:2rem;">10,000円で始める</a>
+    </div>
+  </section>
+
+  <!-- Legal warning -->
+  <section class="alt">
+    <div class="container">
+      <div class="warn-box">
+        <h3>⚠ 重要：遺言状参考資料について</h3>
+        <p>
+          本サービスが生成する「遺言状参考資料」は、実際の遺言としての法的効力を持ちません。<br>
+          遺言として法的効力を持たせるには、公証役場での<span style="font-weight:700;">公正証書遺言</span>や、法務局での<span style="font-weight:700;">保管制度</span>が必要です。<br><br>
+          本資料は「自分の意向を整理するための参考資料」としてご活用ください。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="container">
+      <h2>よくある質問</h2>
+      <div class="faq-item">
+        <div class="faq-q">Q. スマホでも録音できますか？</div>
+        <div class="faq-a">A. はい、iPhone・Androidのブラウザからそのまま録音できます。専用アプリは不要です。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Q. 音声はどこに保存されますか？</div>
+        <div class="faq-a">A. 日本国内の安全なクラウドサーバーに暗号化して保存されます。音声データはPDF生成後、一定期間をもって削除されます。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Q. 3ヶ月後に自動で課金されますか？</div>
+        <div class="faq-a">A. いいえ。3ヶ月が終わる前に「継続のご案内」をメールでお送りします。ご希望がない場合は自動的に解約となります。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Q. 録音内容は家族に見られますか？</div>
+        <div class="faq-a">A. 録音内容はあなただけが閲覧できます。PDF化してメールでお送りするまで、誰にも見られません。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Q. 遺言状として使えますか？</div>
+        <div class="faq-a">A. 本サービスで生成するPDFは「参考資料」です。実際の遺言として法的効力を持たせるには、公証役場での手続きが必要です。参考資料として公証役場に持ち込むことは可能です。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="alt" style="text-align:center;">
+    <div class="container">
+      <h2>あなたの声が、明日の家族の宝物に</h2>
+      <p class="lead" style="margin-bottom:2rem;">「もっと早く話しておけばよかった」<br>そう思う前に、今日から始めましょう。</p>
+      <a href="#start" class="cta cta-warn">10,000円で半生記を始める</a>
+      <p style="margin-top:1.5rem;font-size:0.9rem;color:var(--muted);">※3ヶ月間の利用料（税込）です。カード決済に対応予定。</p>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>progressive-life — 声で残す半生記</p>
+      <p style="margin-top:0.5rem;">© 2025 bonsai. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Recording script (minimal) -->
+  <script>
+    const btn = document.getElementById('micBtn');
+    const status = document.getElementById('status');
+    let rec = null, chunks = [], stream = null;
+
+    btn.addEventListener('click', async () => {
+      if (rec?.state === 'recording') {
+        rec.stop();
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        status.textContent = 'お使いのブラウザでは録音ができません。Safari/Chromeをお試しください。';
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        rec = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+        rec.onstart = () => {
+          btn.style.animation = 'none';
+          btn.style.background = '#c0392b';
+          status.innerHTML = '<span style="color:#c0392b;font-weight:700;">● 録音中</span>　話し終わったらもう一度ボタンを押してください';
+        };
+        rec.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          status.innerHTML = `録音しました（${(blob.size / 1024 / 1024).toFixed(1)}MB）<br><span style="font-size:0.85rem;color:#5c5c5c;">※このデモでは保存されません。実際のサービスでは自動的にアップロードされます。</span>`;
+          stream?.getTracks().forEach(t => t.stop());
+          btn.style.background = '';
+          btn.style.animation = 'pulse 2s infinite';
+        };
+        rec.start();
+      } catch (err) {
+        status.textContent = 'マイクへのアクセスが許可されませんでした。設定を確認してください。';
+      }
+    });
+  </script>
+</body>
+</html>
